@@ -6,6 +6,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/yosssi/ace"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -33,21 +34,21 @@ Info:
   Version:      	` + version + `
   License:      	` + license
 
-// middle dot U+00B7 (unicode character)
-// keystroke: alt gr + ,
-var sep string = "\u00B7"
-
 func main() {
 	// handle options
-	args, err := docopt.Parse(usage, nil, true, "", false)
+	args, err := docopt.Parse(usage, nil, true, version, false)
 
 	if err != nil || args["<FILE>"] == nil {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(1)
 	}
 
+	// middle dot U+00B7 (unicode character)
+	// keystroke: alt gr + ,
+	var separator string = "\u00B7"
+
 	if len(args["--separator"].([]string)) > 0 {
-		sep = args["--separator"].([]string)[0]
+		separator = args["--separator"].([]string)[0]
 	}
 
 	// variables
@@ -72,7 +73,7 @@ func main() {
 	if len(args["--output"].([]string)) > 0 {
 		output = args["--output"].([]string)[0]
 	} else {
-		output = base + ".html"
+		output = path.Base(base) + ".html"
 	}
 
 	w, err := os.OpenFile(output, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0655)
@@ -85,7 +86,7 @@ func main() {
 	var data map[string]interface{}
 
 	if len(args["--map"].([]string)) > 0 {
-		data = decodeFileToMap(args["--map"].([]string)[0])
+		data = FileToMap(args["--map"].([]string)[0], separator)
 	} else {
 		data = make(map[string]interface{})
 	}
@@ -104,12 +105,12 @@ func main() {
 
 }
 
-func decodeFileToMap(mappings string) map[string]interface{} {
+func FileToMap(fileName, separator string) map[string]interface{} {
 	// hash table variable
 	var data map[string]interface{}
 	data = make(map[string]interface{})
 
-	file, err := os.Open(mappings)
+	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(3)
@@ -121,11 +122,11 @@ func decodeFileToMap(mappings string) map[string]interface{} {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// is the line long enough to be considered?
-		if len(line) < len(sep)+2 {
+		if len(line) < len(separator)+2 {
 			continue
-			// is the string a slice?
-		} else if strings.Contains(line, sep) {
-			parts := strings.Split(line, sep)
+			// is the string a slice of strings []string?
+		} else if strings.Contains(line, separator) {
+			parts := strings.Split(line, separator)
 			if strings.Contains(parts[1], "[]string") {
 				slice := strings.Split(parts[1], "[]string{")
 				collection := strings.TrimSuffix(slice[1], "}")
