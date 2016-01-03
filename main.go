@@ -11,7 +11,7 @@ import (
 )
 
 // constants
-const version = "0.1"
+const version = "0.2"
 const license = "MIT"
 
 // Command line interface
@@ -133,14 +133,12 @@ func FileToMap(fileName, separator string) map[string]interface{} {
 			parts := strings.Split(line, separator)
 
 			// is the string a slice of strings []string?
-			if strings.Contains(parts[1], "[]string") {
-				slice := strings.Split(parts[1], "[]string{")
-				collection := strings.TrimSuffix(slice[1], "}")
-				values := strings.Split(collection, ",")
-
+			if len(parts) > 2 {
 				data[parts[0]] = []string{}
-				for _, v := range values {
-					data[parts[0]] = append(data[parts[0]].([]string), strings.TrimPrefix(strings.TrimSuffix(strings.TrimSpace(v), "\""), "\""))
+				for i, v := range parts {
+					if i != 0 {
+						data[parts[0]] = append(data[parts[0]].([]string), v)
+					}
 				}
 			} else {
 				// it is a string
