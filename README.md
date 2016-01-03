@@ -48,6 +48,30 @@ You are able to use the inner.ace as well:
 
     $ ace -i example/inner.ace -m example/mappings.map example/base.ace
 
+Result:
+
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>Actions</title>
+      </head>
+      <body>
+        <h1>Actions</h1>
+        <ul>
+          <li>Message1</li>
+          <li>Message2</li>
+          <li>Message3</li>
+        </ul>
+        <h2>This is a content named "main" of an inner template.</h2>
+        <div>&lt;div&gt;Escaped String&lt;/div&gt;</div>
+        <div>
+          <div>Non-Escaped String</div>
+        </div>
+	<h2>This is a content named "sub" of an inner template.</h2>
+      </body>
+    </html>
+
 
 ##License:##
 
