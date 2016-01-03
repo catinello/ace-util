@@ -8,7 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
-	"path"
+	pa "path"
 	"strings"
 )
 
@@ -20,7 +20,7 @@ const license = "MIT"
 var usage string = `ace - Command line utility for the Ace HTML template engine.
 
 Usage:
-  ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-w | --httpd] <FILE>
+  ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-r | --path=<PATH>] [-w | --httpd] <FILE>
   ace [-h | --help]
   ace [-v | --version]
 Options:
@@ -30,6 +30,7 @@ Options:
   -p --stdout           Print to stdout.
   -o --output=<FILE>    Write to custom file.
   -w --httpd            Start temporary webserver.
+  -r --path=<PATH>	Webserver includes this path.
   -h --help             Show this help.
   -v --version          Display version.
 Info:
@@ -61,7 +62,7 @@ func main() {
 	}
 
 	// variables
-	var base, inner, output string
+	var base, inner, output, path string
 
 	base = strings.Split(args["<FILE>"].(string), ".ace")[0]
 
@@ -74,7 +75,7 @@ func main() {
 	if len(args["--output"].([]string)) > 0 {
 		output = args["--output"].([]string)[0]
 	} else {
-		output = path.Base(base) + ".html"
+		output = pa.Base(base) + ".html"
 	}
 
 	// load, execute, generate ace templates and data
@@ -92,12 +93,25 @@ func main() {
 		data = make(map[string]interface{})
 	}
 
+	if len(args["--path"].([]string)) > 0 {
+		path = args["--path"].([]string)[0]
+	} else {
+		path, err = os.Getwd()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(4)
+		}
+	}
+
 	if args["--stdout"].(bool) {
 		if err := tpl.Execute(os.Stdout, data); err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(2)
 		}
 	} else if args["--httpd"].(bool) {
+		// handle for static files in ${PWD} eg. css/js/images
+		http.Handle("/include/", http.StripPrefix("/include/", http.FileServer(http.Dir(path))))
+
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			handler(w, r, tpl, data)
 		})

@@ -27,7 +27,7 @@ Easy development feature (builtin local-webserver):
 
     $ ace -i example/inner.ace -m example/mappings.map example/base.ace -w
 
-Open your browser and visit http://127.0.0.1:8080 to see a preview of your generated template.
+Open your browser and visit http://127.0.0.1:8080 to see a preview of your generated template. Your ${PWD} is included via http://127.0.0.1:8080/include/ for css/js/images. You can alter this by defining the *--path* flag.
 
 Simple call of an Ace template:
 
