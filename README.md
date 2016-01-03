@@ -22,9 +22,9 @@ Command line utility for the [Ace][ACE] HTML template engine.
 
 ##Examples:##
 
-Simple call of an Ace template (with or without .ace suffix):
+Simple call of an Ace template:
 
-    $ ace example/base
+    $ ace example/base.ace
 
 Creates the corresponding file base.html in your **${PWD}**. You can change the location to store through the *--output* flag.
 
@@ -68,7 +68,7 @@ Result:
         <div>
           <div>Non-Escaped String</div>
         </div>
-	<h2>This is a content named "sub" of an inner template.</h2>
+        <h2>This is a content named "sub" of an inner template.</h2>
       </body>
     </html>
 
