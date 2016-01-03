@@ -7,20 +7,27 @@ Command line utility for the [Ace][ACE] HTML template engine.
 ##Usage:##
 
     Usage:
-      ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<SYMBOL>] [-p | --stdout] [-o | --output=<FILE>] <FILE>
+      ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-w | --httpd] <FILE>
       ace [-h | --help]
       ace [-v | --version]
     Options:
-      -i --inner            Path to the inner.ace file.
-      -m --map              Path to the mappings.map file.
-      -s --separator        Separator for key/value map file.
+      -i --inner=<FILE>     Path to the inner.ace file.
+      -m --map=<FILE>       Path to the mappings.map file.
+      -s --separator=<CHAR> Separator for key/value map file.
       -p --stdout           Print to stdout.
-      -o --output           Write to custom file.
+      -o --output=<FILE>    Write to custom file.
+      -w --httpd            Start temporary webserver.
       -h --help             Show this help.
       -v --version          Display version.
 
 
 ##Examples:##
+
+Easy development feature (builtin local-webserver):
+
+    $ ace -i example/inner.ace -m example/mappings.map example/base.ace -w
+
+Open your browser and visit http://127.0.0.1:8080 to see a preview of your generated template.
 
 Simple call of an Ace template:
 

@@ -5,39 +5,48 @@ import (
 	"fmt"
 	"github.com/docopt/docopt-go"
 	"github.com/yosssi/ace"
+	"html/template"
+	"net/http"
 	"os"
 	"path"
 	"strings"
 )
 
 // constants
-const version = "0.2"
+const version = "0.3"
 const license = "MIT"
 
 // Command line interface
 var usage string = `ace - Command line utility for the Ace HTML template engine.
 
 Usage:
-  ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<SYMBOL>] [-p | --stdout] [-o | --output=<FILE>] <FILE>
+  ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-w | --httpd] <FILE>
   ace [-h | --help]
   ace [-v | --version]
 Options:
-  -i --inner		Path to the inner.ace file.
-  -m --map		Path to the mappings.map file.
-  -s --separator	Separator for key/value map file.
-  -p --stdout   	Print to stdout.
-  -o --output		Write to custom file.
-  -h --help     	Show this help.
-  -v --version  	Display version.
+  -i --inner=<FILE>     Path to the inner.ace file.
+  -m --map=<FILE>       Path to the mappings.map file.
+  -s --separator=<CHAR> Separator for key/value map file.
+  -p --stdout           Print to stdout.
+  -o --output=<FILE>    Write to custom file.
+  -w --httpd            Start temporary webserver.
+  -h --help             Show this help.
+  -v --version          Display version.
 Info:
   Author:       	Antonino Catinello
   Version:      	` + version + `
   License:      	` + license
 
+// Errors:
+// 1 = usage
+// 2 = template generation
+// 3 = FileToMap
+// 4 = webserver
 func main() {
 	// handle options
 	args, err := docopt.Parse(usage, nil, true, version, false)
 
+	//fmt.Println(err.Error())
 	if err != nil || args["<FILE>"] == nil {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(1)
@@ -88,8 +97,17 @@ func main() {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(2)
 		}
+	} else if args["--httpd"].(bool) {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			handler(w, r, tpl, data)
+		})
+
+		if err := http.ListenAndServe("127.0.0.1:8080", nil); err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(4)
+		}
 	} else {
-		w, err := os.OpenFile(output, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0655)
+		w, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0655)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(2)
@@ -104,6 +122,14 @@ func main() {
 
 }
 
+// Webserver handle which executes the template by request.
+func handler(w http.ResponseWriter, r *http.Request, tpl *template.Template, data map[string]interface{}) {
+	if err := tpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 // FileToMap opens the fileName and parses the content per line
 // and separates key/values by the given unicode separator
 // to return a map with the content. Keys are of string and values
@@ -113,6 +139,7 @@ func FileToMap(fileName, separator string) map[string]interface{} {
 	var data map[string]interface{}
 	data = make(map[string]interface{})
 
+	// handle file
 	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -123,26 +150,30 @@ func FileToMap(fileName, separator string) map[string]interface{} {
 	// scan through file
 	scanner := bufio.NewScanner(file)
 
+	// loop
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		// is the line long enough to be considered?
-		if len(line) < len(separator)+2 {
-			continue
-		} else if strings.Contains(line, separator) {
-			parts := strings.Split(line, separator)
+		if len(line) >= len(separator)+2 {
+			// if the line contains a separator, then work with it
+			if strings.Contains(line, separator) {
+				parts := strings.Split(line, separator)
 
-			// is the string a slice of strings []string?
-			if len(parts) > 2 {
-				data[parts[0]] = []string{}
-				for i, v := range parts {
-					if i != 0 {
-						data[parts[0]] = append(data[parts[0]].([]string), v)
+				// is it multivalue? -> []string
+				if len(parts) > 2 {
+					data[parts[0]] = []string{}
+
+					for i, v := range parts {
+						// don't add the keyname to value
+						if i != 0 {
+							data[parts[0]] = append(data[parts[0]].([]string), v)
+						}
 					}
+				} else {
+					// it is a single value -> string
+					data[parts[0]] = parts[1]
 				}
-			} else {
-				// it is a string
-				data[parts[0]] = parts[1]
 			}
 		}
 	}
