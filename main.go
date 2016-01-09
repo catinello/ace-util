@@ -3,17 +3,18 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/docopt/docopt-go"
-	"github.com/yosssi/ace"
 	"html/template"
 	"net/http"
 	"os"
 	pa "path"
 	"strings"
+
+	"github.com/docopt/docopt-go"
+	"github.com/yosssi/ace"
 )
 
 // constants
-const version = "0.3"
+const version = "0.4"
 const license = "MIT"
 
 // Command line interface
@@ -29,8 +30,8 @@ Options:
   -s --separator=<CHAR> Separator for key/value map file.
   -p --stdout           Print to stdout.
   -o --output=<FILE>    Write to custom file.
-  -w --httpd            Start temporary webserver.
   -r --path=<PATH>	Webserver includes this path.
+  -w --httpd            Start temporary webserver.
   -h --help             Show this help.
   -v --version          Display version.
 Info:
@@ -63,6 +64,7 @@ func main() {
 
 	// variables
 	var base, inner, output, path string
+	var tpl *template.Template
 
 	base = strings.Split(args["<FILE>"].(string), ".ace")[0]
 
@@ -78,11 +80,13 @@ func main() {
 		output = pa.Base(base) + ".html"
 	}
 
-	// load, execute, generate ace templates and data
-	tpl, err := ace.Load(base, inner, nil)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(2)
+	if args["--httpd"].(bool) == false {
+		// load, execute, generate ace templates and data
+		tpl, err = ace.Load(base, inner, nil)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(2)
+		}
 	}
 
 	var data map[string]interface{}
@@ -113,7 +117,7 @@ func main() {
 		http.Handle("/include/", http.StripPrefix("/include/", http.FileServer(http.Dir(path))))
 
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			handler(w, r, tpl, data)
+			handler(w, r, base, inner, data)
 		})
 
 		if err := http.ListenAndServe("127.0.0.1:8080", nil); err != nil {
@@ -137,7 +141,14 @@ func main() {
 }
 
 // Webserver handle which executes the template by request.
-func handler(w http.ResponseWriter, r *http.Request, tpl *template.Template, data map[string]interface{}) {
+func handler(w http.ResponseWriter, r *http.Request, base, inner string, data map[string]interface{}) {
+	// load, execute, generate ace templates and data with dynamic reload
+	tpl, err := ace.Load(base, inner, &ace.Options{DynamicReload: true})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(2)
+	}
+
 	if err := tpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
