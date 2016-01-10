@@ -145,8 +145,8 @@ func handler(w http.ResponseWriter, r *http.Request, base, inner string, data ma
 	// load, execute, generate ace templates and data with dynamic reload
 	tpl, err := ace.Load(base, inner, &ace.Options{DynamicReload: true})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(2)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if err := tpl.Execute(w, data); err != nil {
