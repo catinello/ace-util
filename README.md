@@ -7,19 +7,19 @@ Command line utility for the [Ace][ACE] HTML template engine.
 ##Usage:##
 
     Usage:
-      ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-r | --path=<PATH>] [-w | --httpd] <FILE>
+      ace [-i | --inner <FILE>] [-m | --map <FILE>] [-s | --separator=<CHAR>] [-t | --stdout] [-o | --output <FILE>] [-p | --path <PATH>] [-w | --httpd] <FILE>
       ace [-h | --help]
       ace [-v | --version]
     Options:
-      -i --inner=<FILE>     Path to the inner.ace file.
-      -m --map=<FILE>       Path to the mappings.map file.
-      -s --separator=<CHAR> Separator for key/value map file.
-      -p --stdout           Print to stdout.
-      -o --output=<FILE>    Write to custom file.
-      -r --path=<PATH>      Webserver includes this path.
-      -w --httpd            Start temporary webserver.
-      -h --help             Show this help.
-      -v --version          Display version.
+      -i | --inner <FILE>     Path to the inner.ace file.
+      -m | --map <FILE>       Path to the mappings.map file.
+      -s | --separator <CHAR> Separator for key/value map file.
+      -t | --stdout           Print to stdout.
+      -o | --output <FILE>    Write to custom file.
+      -p | --path <PATH>      Webserver includes this path.
+      -w | --httpd            Start temporary webserver.
+      -h | --help             Show this help.
+      -v | --version          Display version.
 
 
 ##Examples:##

@@ -9,35 +9,73 @@ import (
 	pa "path"
 	"strings"
 
-	"github.com/docopt/docopt-go"
 	"github.com/yosssi/ace"
 )
 
-// constants
-const version = "0.4"
-const license = "MIT"
+var (
+	c = new(cli)
+	version string
+)
 
-// Command line interface
-var usage string = `ace - Command line utility for the Ace HTML template engine.
+// constants
+const (
+        author = "Antonino Catinello"
+        license = "MIT"
+        year = "2016"
+        copyright = "\u00A9"
+)
+
+
+type cli struct {
+	inner string
+	mapname string
+	separator string
+	stdout bool
+	output string
+	path string
+	webserver bool
+	file string
+	help bool
+	version bool
+}
+
+func help() {
+	var o string = os.Args[0] + ` - Command line utility for the Ace HTML template engine.
 
 Usage:
-  ace [-i | --inner=<FILE>] [-m | --map=<FILE>] [-s | --separator=<CHAR>] [-p | --stdout] [-o | --output=<FILE>] [-r | --path=<PATH>] [-w | --httpd] <FILE>
-  ace [-h | --help]
-  ace [-v | --version]
+  ` + os.Args[0] + ` [-i | --inner <FILE>] [-m | --map <FILE>] [-s | --separator <CHAR>] [-t | --stdout] [-o | --output <FILE>] [-p | --path <PATH>] [-w | --httpd] <FILE>
+  ` + os.Args[0] + ` [-h | --help]
+  ` + os.Args[0] + ` [-v | --version]
 Options:
-  -i --inner=<FILE>     Path to the inner.ace file.
-  -m --map=<FILE>       Path to the mappings.map file.
-  -s --separator=<CHAR> Separator for key/value map file.
-  -p --stdout           Print to stdout.
-  -o --output=<FILE>    Write to custom file.
-  -r --path=<PATH>	Webserver includes this path.
-  -w --httpd            Start temporary webserver.
-  -h --help             Show this help.
-  -v --version          Display version.
+  -i | --inner <FILE>     Path to the inner.ace file.
+  -m | --map <FILE>       Path to the mappings.map file.
+  -s | --separator <CHAR> Separator for key/value map file.
+  -t | --stdout           Print to stdout.
+  -o | --output <FILE>    Write to custom file.
+  -p | --path <PATH>      Webserver includes this path.
+  -w | --httpd            Start temporary webserver.
+  -h | --help             Show this help.
+  -v | --version          Display version.
 Info:
-  Author:       	Antonino Catinello
-  Version:      	` + version + `
-  License:      	` + license
+  ` + license + ` license ` + copyright + ` ` + year + ` ` + author + `
+  Version: ` + version
+
+	fmt.Fprintln(os.Stderr, o)
+        os.Exit(1)
+}
+
+func info() {
+	fmt.Fprintln(os.Stdout, version)
+	os.Exit(0)
+}
+
+func init() {
+	if len(os.Args) < 2 {
+                help()
+        }
+
+	flags(os.Args[1:])
+}
 
 // Errors:
 // 1 = usage
@@ -45,42 +83,38 @@ Info:
 // 3 = FileToMap
 // 4 = webserver
 func main() {
-	// handle options
-	args, err := docopt.Parse(usage, nil, true, version, false)
-
-	//fmt.Println(err.Error())
-	if err != nil || args["<FILE>"] == nil {
-		fmt.Fprintln(os.Stderr, usage)
-		os.Exit(1)
+	if len(c.file) == 0 {
+		help()
 	}
 
 	// middle dot U+00B7 (unicode character)
 	// keystroke: alt gr + ,
 	var separator string = "\u00B7"
 
-	if len(args["--separator"].([]string)) > 0 {
-		separator = args["--separator"].([]string)[0]
+	if len(c.separator) > 0 {
+		separator = c.separator
 	}
 
 	// variables
 	var base, inner, output, path string
 	var tpl *template.Template
+	var err error
 
-	base = strings.Split(args["<FILE>"].(string), ".ace")[0]
+	base = strings.Split(c.file, ".ace")[0]
 
-	if len(args["--inner"].([]string)) > 0 {
-		inner = strings.Split(args["--inner"].([]string)[0], ".ace")[0]
+	if len(c.inner) > 0 {
+		inner = strings.Split(c.inner, ".ace")[0]
 	} else {
 		inner = ""
 	}
 
-	if len(args["--output"].([]string)) > 0 {
-		output = args["--output"].([]string)[0]
+	if len(c.output) > 0 {
+		output = c.output
 	} else {
 		output = pa.Base(base) + ".html"
 	}
 
-	if args["--httpd"].(bool) == false {
+	if c.webserver == false {
 		// load, execute, generate ace templates and data
 		tpl, err = ace.Load(base, inner, nil)
 		if err != nil {
@@ -91,14 +125,14 @@ func main() {
 
 	var data map[string]interface{}
 
-	if len(args["--map"].([]string)) > 0 {
-		data = FileToMap(args["--map"].([]string)[0], separator)
+	if len(c.mapname) > 0 {
+		data = FileToMap(c.mapname, separator)
 	} else {
 		data = make(map[string]interface{})
 	}
 
-	if len(args["--path"].([]string)) > 0 {
-		path = args["--path"].([]string)[0]
+	if len(c.path) > 0 {
+		path = c.path
 	} else {
 		path, err = os.Getwd()
 		if err != nil {
@@ -107,12 +141,12 @@ func main() {
 		}
 	}
 
-	if args["--stdout"].(bool) {
+	if c.stdout {
 		if err := tpl.Execute(os.Stdout, data); err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(2)
 		}
-	} else if args["--httpd"].(bool) {
+	} else if c.webserver {
 		// handle for static files in ${PWD} eg. css/js/images
 		http.Handle("/include/", http.StripPrefix("/include/", http.FileServer(http.Dir(path))))
 
@@ -137,7 +171,65 @@ func main() {
 			os.Exit(2)
 		}
 	}
+}
 
+func flags(opts []string) {
+        na := len(opts)-1
+
+        for i, v := range opts {
+                //fmt.Println(i,v)
+                switch v {
+                case "-v", "--version":
+                        c.version = true
+                case "-h", "--help":
+                        c.help = true
+                case "-t", "--stdout":
+                        c.stdout = true
+                case "-w", "--httpd":
+                        c.webserver = true
+                case "-i", "--inner":
+			if na < i+1 {
+				help()
+			}
+                        c.inner = opts[i+1]
+                case "-m", "--map":
+			if na < i+1 {
+				help()
+			}
+                        c.mapname = opts[i+1]
+                case "-o", "--output":
+			if na < i+1 {
+				help()
+			}
+                        c.output = opts[i+1]
+                case "-p", "--path":
+			if na < i+1 {
+				help()
+			}
+                        c.path = opts[i+1]
+               case "-s", "--separator":
+			if na < i+1 {
+				help()
+			}
+                        c.separator = opts[i+1]
+                default:
+                        if i == na {
+                                c.file = v
+                        }
+                }
+        }
+
+	if c.help {
+		help()
+	}
+
+	if c.version {
+		info()
+	}
+
+	if c.webserver && c.stdout {
+		help()
+	}
 }
 
 // Webserver handle which executes the template by request.
